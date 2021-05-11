@@ -1,1 +1,2 @@
-# ApproximateCoalitionalEquilibria
+# coalitions
+Coalition stability investigations
