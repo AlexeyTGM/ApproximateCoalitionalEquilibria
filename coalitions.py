@@ -61,6 +61,7 @@ class SnobCoalition(Coalition):
         super().__init__(state, members)
 
     def cost(self, member_index):
+        self.update_median()
         return self.g / len(self.members) + self.t * np.abs(self.m - self.state.agents[member_index])
 
 
@@ -135,7 +136,7 @@ class CoalitionInstabilityCalculator:
         self.state = state
         self.length = len(state.agents) if length == 0 else length
         superset_ = list(all_subsets(list(range(0, len(self.state.agents)))))
-        self.superset = [EgalitarianCoalition(self.state, list(members)) for members in superset_]
+        self.superset = [self.state.coalition_creator(self.state, list(members)) for members in superset_]
 
     def check_is_stable(self, configuration):
         is_best = True
@@ -153,15 +154,21 @@ class CoalitionInstabilityCalculator:
 
     def calculate_abs_instability_for(self, configuration):
         instability = 0
+        diffs = []
         for coalition in self.superset:
             delta = float("inf")
+            deltas = []
             for member in coalition.members:
                 diff = configuration.get_coalition(member).cost(member) - coalition.cost(member)
+                deltas.append(diff)
+                # if diff > 0 and diff < delta:
                 if diff < delta:
                     delta = diff
+            diffs.append(deltas)
+            # if delta != float("inf") and instability < delta:
             if instability < delta:
                 instability = delta
-        return instability
+        return instability, diffs
 
     def calculate_config_costs(self, configuration):
         delta = 0
@@ -187,6 +194,25 @@ class CoalitionInstabilityCalculator:
         deltas = []
 
         for initial_configuration in configurations:
-            deltas.append(self.calculate_abs_instability_for(initial_configuration))
+            delta, _ = self.calculate_abs_instability_for(initial_configuration)
+            deltas.append(delta)
+
+        # all_costs = np.array([self.calculate_config_costs(configuration)
+        #                 for configuration in configurations])
+
+        # for coalition_costs in all_costs:
+        #     # print(coalition_costs)
+        #     cost_deltas = - (all_costs - coalition_costs) # / coalition_costs
+        #     cost_deltas[cost_deltas < np.finfo(float).eps] = float("inf")
+        #     # print(cost_deltas)
+        #     minInColumns = np.amin(cost_deltas, axis=0)
+        #     # print(minInColumns)
+        #     maxInMins = np.amax(minInColumns)
+        #     deltas.append(maxInMins)
+
+        # print(deltas)
+        # deltas = all_costs
+        # minInColumns = np.amin(deltas, axis=0)
+        # return np.amax(minInColumns)
 
         return np.amin(deltas)
